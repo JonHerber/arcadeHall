@@ -2,12 +2,15 @@ import Phaser, { Physics } from 'phaser'
 
 import TitleScreen from './scences/TitleScreen'
 import Game from './scences/Game'
+import GameBackground from './scences/GameBackground'
+
+import * as SceneKeys from './consts/SceneKeys'
 
 const config = {
     width: 800,
     height: 600,
     type: Phaser.AUTO,
-    backgroundColor: '#616161',
+    // backgroundColor: '#616161',
     physics: {
         default: 'arcade',
         arcade: {
@@ -19,8 +22,9 @@ const config = {
 
 const game = new Phaser.Game(config)
 
-game.scene.add('titlescreen', TitleScreen)
-game.scene.add('game', Game)
+game.scene.add(SceneKeys.TitleScreen, TitleScreen)
+game.scene.add(SceneKeys.Game, Game)
+game.scene.add(SceneKeys.GameBackground, GameBackground)
 
 // game.scene.start('titlescreen')
-game.scene.start('game')
+game.scene.start(SceneKeys.Game)

@@ -2,6 +2,8 @@ import Phaser from "phaser"
 
 import WebFontFile from "./WebFontFile"
 
+import { GameBackground } from '../consts/SceneKeys'
+
 export default class Game extends Phaser.Scene {
 
     preload() {
@@ -10,12 +12,15 @@ export default class Game extends Phaser.Scene {
     }
 
     create() {
+        this.scene.run(GameBackground)
+        this.scene.sendToBack(GameBackground)
+
         this.scorePlayer1 = 0
         this.scorePlayer2 = 0
 
         this.physics.world.setBounds(-100, 0, 1000, 600)
 
-        this.ball = this.add.circle(400, 250, 10, 0x6666ff, 1)
+        this.ball = this.add.circle(400, 250, 10, 0xffffff, 1)
         this.physics.add.existing(this.ball)
         this.ball.body.setBounce(1, 1)
 
@@ -23,13 +28,13 @@ export default class Game extends Phaser.Scene {
 
         this.resetBall()
 
-        this.paddleLeft = this.add.rectangle(50, 250, 10, 100, 0x6666ff, 1)
+        this.paddleLeft = this.add.rectangle(50, 250, 10, 100, 0xffffff, 1)
         this.physics.add.existing(this.paddleLeft)
 
         this.paddleLeft.body.setCollideWorldBounds(true, 1, 1)
         this.paddleLeft.body.setImmovable(true)
 
-        this.paddleRight = this.add.rectangle(750, 250, 10, 100, 0x6666ff, 1)
+        this.paddleRight = this.add.rectangle(750, 250, 10, 100, 0xffffff, 1)
         this.physics.add.existing(this.paddleRight)
 
         this.paddleRight.body.setCollideWorldBounds(true, 1, 1)
