@@ -27,6 +27,7 @@ export default class Game extends Phaser.Scene {
     // Initialize scores
     this.scorePlayer1 = 0
     this.scorePlayer2 = 0
+    this.paused = false
 
     // Adjust the physics world bounds (extra space to left/right if needed)
     this.physics.world.setBounds(-100, 0, 1000, 600)
@@ -52,6 +53,10 @@ export default class Game extends Phaser.Scene {
    * @returns {void}
    */
   update() {
+    if (this.paused) {
+      return
+    }
+
     // Handle player (left) paddle movement
     this.handlePaddleLeftMovement()
 
@@ -78,7 +83,9 @@ export default class Game extends Phaser.Scene {
     this.ball.body.setCollideWorldBounds(true, 1, 1)
 
     // Start ball movement
-    this.resetBall()
+    this.time.delayedCall(500, () => {
+        this.resetBall()
+    })
   }
 
   /**
@@ -151,9 +158,9 @@ export default class Game extends Phaser.Scene {
    */
   handlePaddleLeftMovement() {
     if (this.cursors.up.isDown) {
-      this.paddleLeft.body.setVelocityY(-200)
+      this.paddleLeft.body.setVelocityY(-300)
     } else if (this.cursors.down.isDown) {
-      this.paddleLeft.body.setVelocityY(200)
+      this.paddleLeft.body.setVelocityY(300)
     } else {
       this.paddleLeft.body.setVelocityY(0)
     }
@@ -184,7 +191,7 @@ export default class Game extends Phaser.Scene {
   resetBall() {
     this.ball.setPosition(400, 250)
     const angle = Phaser.Math.Between(0, 360)
-    this.physics.velocityFromAngle(angle, 200, this.ball.body.velocity)
+    this.physics.velocityFromAngle(angle, 300, this.ball.body.velocity)
   }
 
   /**
@@ -217,5 +224,15 @@ export default class Game extends Phaser.Scene {
   calculateScore() {
     this.scorePlayer1Text.setText(this.scorePlayer1)
     this.scorePlayer2Text.setText(this.scorePlayer2)
+
+    const maxScore = 5
+    if (this.scorePlayer1 >= maxScore || this.scorePlayer2 >= maxScore) {
+      this.paused = true
+      this.scene.stop(GameBackground)
+      this.scene.start('gameover', {
+        player1: this.scorePlayer1,
+        player2: this.scorePlayer2
+      })
+    }
   }
 }
