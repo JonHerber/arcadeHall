@@ -3,22 +3,6 @@ import { Pacman } from '../consts/SceneKeys';
 import { defaultFont } from '../consts/Fonts';
 import WebFontFile from './WebFontFile';
 
-/**
- * PacmanScene - A Phaser scene that implements a Pacman game with a maze,
- * animated sprites, smooth turning Pacman, ghost AI that pursues Pacman,
- * and a scoring system. Three ghosts are spawned:
- *  - Red ghost at the bottom right (default)
- *  - Pink ghost at the top right
- *  - Orange ghost at the bottom left
- *
- * Picking up a pellet increases the score by 10 points.
- *
- * NEW: Five additional powerups are placed on the map. When Pacman collects one,
- * he becomes invincible for 7 seconds. During that time:
- *  - Ghosts are tinted blue.
- *  - If Pacman touches a ghost, that ghost is "killed" and Pacman's invincibility
- *    is extended by 7 seconds.
- */
 export default class PacmanScene extends Phaser.Scene {
   constructor() {
     super({ key: Pacman });
@@ -30,27 +14,23 @@ export default class PacmanScene extends Phaser.Scene {
     this.ghosts = [];
     // Initialize the score.
     this.score = 0;
-    // Invincibility state for Pacman
+    // Invincibility state for Pacman.
     this.isInvincible = false;
     this.invincibleEndTime = 0;
+    // Player lives.
+    this.lives = 3;
   }
 
-  /**
-   * Preload assets and create textures for Pacman, ghosts, pellets, and powerups.
-   */
   preload() {
     this.createPacmanTextures();
     this.createGhostTextures();
     this.createPelletTexture();
     this.createPowerupTexture();
-    // Load your font
+    // Load your font.
     const fonts = new WebFontFile(this.load, 'Press Start 2P');
     this.load.addFile(fonts);
   }
 
-  /**
-   * Create the game scene: animations, maze, sprites, input, and score display.
-   */
   create() {
     this.createAnimations();
     this.cameras.main.setBackgroundColor('#000');
@@ -58,6 +38,7 @@ export default class PacmanScene extends Phaser.Scene {
 
     this.createMaze();
     this.createSprites();
+
     // Create the score text in the top-left corner.
     this.score = 0;
     this.scoreText = this.add.text(10, 10, 'Score: 0', {
@@ -65,17 +46,32 @@ export default class PacmanScene extends Phaser.Scene {
       fill: '#fff',
       fontFamily: defaultFont,
     });
+
+    // Create the heart texture (if not already created)
+    this.createHeartTexture();
+    // Create heart sprites for lives in the top-right corner.
+    this.hearts = [];
+    const margin = 10;
+    const heartSpacing = 5;
+    const heartWidth = 20; // Texture is 20x20
+    for (let i = 0; i < this.lives; i++) {
+      const x =
+        this.cameras.main.width -
+        margin -
+        heartWidth / 2 -
+        i * (heartWidth + heartSpacing);
+      const y = margin + heartWidth / 2;
+      const heart = this.add.image(x, y, 'heart');
+      // Ensure the hearts stay fixed on the screen.
+      heart.setScrollFactor(0);
+      this.hearts.push(heart);
+    }
+
     this.createInput();
   }
 
-  /**
-   * Update loop: handle both Pacman and ghost movement as well as invincibility.
-   * @param {number} time - The current time (in ms).
-   * @param {number} delta - The delta time since last update.
-   */
   update(time, delta) {
     this.handlePacmanMovement();
-    // Update each ghost individually if they are active.
     this.ghosts.forEach((ghost) => {
       if (ghost.active) {
         this.handleGhostMovement(ghost);
@@ -104,9 +100,6 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Callback when Pacman overlaps a pellet.
-   * Picking up a pellet gives 10 points.
-   * @param {Phaser.GameObjects.GameObject} pacman - The Pacman sprite.
-   * @param {Phaser.GameObjects.GameObject} pellet - The pellet to be eaten.
    */
   eatPellet(pacman, pellet) {
     pellet.disableBody(true, true);
@@ -126,25 +119,52 @@ export default class PacmanScene extends Phaser.Scene {
   /**
    * Callback when Pacman collides with a ghost.
    * If Pacman is invincible, the ghost is "killed" and the invincibility
-   * duration is extended by 7 seconds. Otherwise, the scene is restarted.
-   * @param {Phaser.GameObjects.GameObject} pacman - The Pacman sprite.
-   * @param {Phaser.GameObjects.GameObject} ghost - The ghost sprite.
+   * duration is extended by 7 seconds.
+   * Otherwise, Pacman loses a life. When a life is lost, one heart sprite is removed.
+   * If lives remain, Pacman is temporarily removed and respawns at the top-left after 1 second.
+   * If no lives remain, the game restarts.
    */
   hitGhost(pacman, ghost) {
     if (this.isInvincible) {
       ghost.disableBody(true, true);
       // Extend invincibility by 7 seconds (7000 ms).
       this.invincibleEndTime += 7000;
+      this.score += 100;
+      this.scoreText.setText('Score: ' + this.score);
     } else {
-      this.scene.restart();
+      // Decrement a life.
+      this.lives -= 1;
+      // Remove one heart sprite.
+      const lostHeart = this.hearts.pop();
+      if (lostHeart) {
+        lostHeart.destroy();
+      }
+
+      if (this.lives <= 0) {
+        // Game over.
+        this.add
+          .text(400, 300, 'Game Over', { fontSize: '48px', fill: '#fff' })
+          .setOrigin(0.5);
+        this.time.delayedCall(3000, () => {
+          this.scene.restart();
+        });
+      } else {
+        // Disable Pacman immediately.
+        this.pacman.disableBody(true, true);
+        // After 1 second, respawn Pacman at the top-left open cell.
+        this.time.delayedCall(1000, () => {
+          // In this maze, (60, 60) is an open cell.
+          this.pacman.enableBody(true, 60, 60, true, true);
+          this.pacman.setVelocity(0, 0);
+          this.currentDirection = null;
+          this.nextDirection = null;
+        });
+      }
     }
   }
 
   /**
    * Callback when Pacman overlaps a powerup.
-   * Activates invincibility for 7 seconds (or extends it if already active).
-   * @param {Phaser.GameObjects.GameObject} pacman - The Pacman sprite.
-   * @param {Phaser.GameObjects.GameObject} powerup - The powerup sprite.
    */
   eatPowerup(pacman, powerup) {
     powerup.disableBody(true, true);
@@ -188,10 +208,6 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Create textures for the ghosts.
-   * Three sets are created:
-   *  - Red (default)
-   *  - Pink
-   *  - Orange
    */
   createGhostTextures() {
     // Red ghost textures.
@@ -376,11 +392,10 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Create texture for the powerup.
-   * The powerup is drawn as a larger circle (16×16 px) in a distinct color.
    */
   createPowerupTexture() {
     const powerupGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-    // You can adjust the color as desired; here we use a magenta color.
+    // Magenta color for the powerup.
     powerupGraphics.fillStyle(0xff00ff, 1);
     powerupGraphics.fillCircle(8, 8, 8);
     powerupGraphics.generateTexture('powerup', 16, 16);
@@ -388,7 +403,28 @@ export default class PacmanScene extends Phaser.Scene {
   }
 
   /**
-   * Create and position Pacman, the ghosts, and (via createMaze) the powerups.
+   * Create texture for the heart (lives).
+   */
+  createHeartTexture() {
+    if (!this.textures.exists('heart')) {
+      const heartGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+      heartGraphics.fillStyle(0xff0000, 1);
+      // Draw a heart shape using two circles and a triangle.
+      heartGraphics.fillCircle(6, 6, 6);
+      heartGraphics.fillCircle(14, 6, 6);
+      heartGraphics.beginPath();
+      heartGraphics.moveTo(2, 7);
+      heartGraphics.lineTo(18, 7);
+      heartGraphics.lineTo(10, 18);
+      heartGraphics.closePath();
+      heartGraphics.fillPath();
+      heartGraphics.generateTexture('heart', 20, 20);
+      heartGraphics.destroy();
+    }
+  }
+
+  /**
+   * Create and position Pacman, ghosts, and pellets (via createMaze).
    */
   createSprites() {
     // Create Pacman sprite at an open cell.
@@ -397,7 +433,7 @@ export default class PacmanScene extends Phaser.Scene {
     this.pacman.setCollideWorldBounds(true);
     this.pacman.setBounce(0);
 
-    // Create an array to store ghosts.
+    // Create ghosts array.
     this.ghosts = [];
     const tileSize = 800 / 20; // 40 px per tile
 
@@ -408,7 +444,6 @@ export default class PacmanScene extends Phaser.Scene {
     redGhost.play('ghostAnim');
     redGhost.setCollideWorldBounds(true);
     redGhost.setBounce(1);
-    // Attach a direction property to hold its movement vector.
     redGhost.direction = { x: 1, y: 0, angle: 0 };
     redGhost.setVelocity(redGhost.direction.x * 100, redGhost.direction.y * 100);
     this.ghosts.push(redGhost);
@@ -454,8 +489,6 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Handle Pacman's movement with smooth turning and grid alignment.
-   * This method buffers the player's input so that even if Pacman isn't perfectly
-   * centered in an alley, he will snap to the center and change direction if possible.
    */
   handlePacmanMovement() {
     const speed = 150;
@@ -468,7 +501,7 @@ export default class PacmanScene extends Phaser.Scene {
     const centerX = gridX * tileSize + tileSize / 2;
     const centerY = gridY * tileSize + tileSize / 2;
 
-    // Buffer player input: update nextDirection based on arrow keys.
+    // Buffer player input.
     if (this.cursors.left.isDown) {
       this.nextDirection = { x: -1, y: 0, angle: 180 };
     } else if (this.cursors.right.isDown) {
@@ -538,10 +571,6 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Handle a ghost's movement using smooth steering while following basic pursuit logic.
-   * The ghost evaluates its options when near the center of a cell. It will consider forward,
-   * left, and right options while avoiding a direct reversal unless forced.
-   *
-   * @param {Phaser.Physics.Arcade.Sprite} ghost - The ghost sprite to update.
    */
   handleGhostMovement(ghost) {
     const ghostSpeed = 100;
@@ -559,15 +588,12 @@ export default class PacmanScene extends Phaser.Scene {
       Math.abs(ghost.x - centerX) < ghostThreshold &&
       Math.abs(ghost.y - centerY) < ghostThreshold
     ) {
-      // Gently interpolate toward the center.
       ghost.x = Phaser.Math.Linear(ghost.x, centerX, 0.1);
       ghost.y = Phaser.Math.Linear(ghost.y, centerY, 0.1);
 
-      // Get Pacman's grid coordinates.
       const pacGridX = Math.floor(this.pacman.x / tileSize);
       const pacGridY = Math.floor(this.pacman.y / tileSize);
 
-      // Define candidate directions.
       const candidates = [
         { x: -1, y: 0, angle: 180 }, // left
         { x: 1, y: 0, angle: 0 },    // right
@@ -575,7 +601,6 @@ export default class PacmanScene extends Phaser.Scene {
         { x: 0, y: 1, angle: 90 },   // down
       ];
 
-      // Determine the reverse of the current direction.
       let reverse = null;
       if (ghost.direction) {
         reverse = {
@@ -585,7 +610,6 @@ export default class PacmanScene extends Phaser.Scene {
         };
       }
 
-      // Build a list of valid directions, excluding reverse if possible.
       const validDirections = [];
       for (let candidate of candidates) {
         if (!this.canMoveTo(gridX + candidate.x, gridY + candidate.y)) {
@@ -600,7 +624,7 @@ export default class PacmanScene extends Phaser.Scene {
         }
         validDirections.push(candidate);
       }
-      // If no alternatives exist, allow reverse if valid.
+
       if (
         validDirections.length === 0 &&
         reverse &&
@@ -608,7 +632,7 @@ export default class PacmanScene extends Phaser.Scene {
       ) {
         validDirections.push(reverse);
       }
-      // Choose among valid directions by minimizing Manhattan distance to Pacman.
+
       if (validDirections.length > 0) {
         let bestCandidate = validDirections[0];
         let bestDistance = Infinity;
@@ -626,13 +650,12 @@ export default class PacmanScene extends Phaser.Scene {
       }
     }
 
-    // Smoothly interpolate the ghost's velocity toward the target based on its direction.
     if (ghost.direction) {
       const currentVelX = ghost.body.velocity.x;
       const currentVelY = ghost.body.velocity.y;
       const targetVelX = ghost.direction.x * ghostSpeed;
       const targetVelY = ghost.direction.y * ghostSpeed;
-      const lerpFactor = 0.1; // Adjust for smoother or quicker turns.
+      const lerpFactor = 0.1;
       const newVelX = Phaser.Math.Linear(currentVelX, targetVelX, lerpFactor);
       const newVelY = Phaser.Math.Linear(currentVelY, targetVelY, lerpFactor);
       ghost.setVelocity(newVelX, newVelY);
@@ -642,9 +665,6 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Check if a cell in the maze is open (0) and can be moved into.
-   * @param {number} gridX - The grid column index.
-   * @param {number} gridY - The grid row index.
-   * @returns {boolean} True if the cell is open, false otherwise.
    */
   canMoveTo(gridX, gridY) {
     if (
@@ -660,8 +680,6 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Create the maze.
-   * The maze uses a 15×20 grid (each cell is 40×40 px) to fill an 800×600 field.
-   * In addition to pellets, five powerups are placed at fixed positions.
    */
   createMaze() {
     // Define the maze grid: 1 = Wall, 0 = Open space (pellet)
@@ -683,11 +701,10 @@ export default class PacmanScene extends Phaser.Scene {
       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ];
 
-    const rows = this.mazeData.length; // 15 rows
-    const cols = this.mazeData[0].length; // 20 columns
+    const rows = this.mazeData.length;
+    const cols = this.mazeData[0].length;
     const tileSize = 800 / cols; // 40 px per tile
 
-    // Create the wall texture if it doesn't exist.
     if (!this.textures.exists('wall')) {
       const wallGraphics = this.make.graphics({ x: 0, y: 0, add: false });
       wallGraphics.lineStyle(2, 0x0000ff, 1);
@@ -696,11 +713,9 @@ export default class PacmanScene extends Phaser.Scene {
       wallGraphics.destroy();
     }
 
-    // Create groups for maze walls and pellets.
     this.wallGroup = this.physics.add.staticGroup();
     this.pellets = this.physics.add.staticGroup();
 
-    // Build the maze.
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const x = col * tileSize;
@@ -715,10 +730,9 @@ export default class PacmanScene extends Phaser.Scene {
       }
     }
 
-    // Create the powerup group and add 5 powerups at fixed positions.
-    // (Adjusted positions so Pacman doesn't immediately pick one up.)
+    // Create powerups at fixed positions.
     const powerupPositions = [
-      { row: 2, col: 1 },    // Changed from row:1, col:1 to row:2, col:1
+      { row: 2, col: 1 },
       { row: 1, col: 18 },
       { row: 13, col: 1 },
       { row: 13, col: 18 },
