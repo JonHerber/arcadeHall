@@ -1,11 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Phaser 3 Game</title>
-  </head>
-  <body>
-    <!-- Note the type="module" here -->
-    <script type="module" src="./main.js"></script>
-  </body>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Arcade Cabinet</title>
+  <style>
+    /* Make sure the page is full-size */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Container that holds the background arcade image */
+    .arcade-cabinet {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: url('/assets/arcade.webp') no-repeat center center;
+      background-size: cover;
+    }
+
+    /* The screen container that we'll tilt in 3D */
+    .screen {
+      position: absolute;
+      width: 600px;   /* or whatever size your game is */
+      height: 400px;
+      top: 100px;     /* approximate offset to match the image’s monitor */
+      left: 550px;
+      
+      /* Border or shadow to mimic a screen frame (optional) */
+      border: 3px solid #000;
+      box-shadow: 0 0 10px #000;
+
+      /* 3D transform to match the tilt of the screen */
+      transform-origin: center center; /* adjust if you need a different pivot */
+      transform: 
+        perspective(1000px)  /* how “deep” the perspective is */
+        rotateX(10deg)       /* tilt forward/back */
+        rotateY(-5deg)       /* tilt side to side */
+        skewX(-2deg);        /* optional small skew to match the image angles */
+    }
+  </style>
+</head>
+<body>
+  <div class="arcade-cabinet">
+    <!-- This is where Phaser will render -->
+    <div class="screen" id="game-container"></div>
+  </div>
+
+  <!-- Phaser setup -->
+  <script type="module" src="./main.js"></script>
+</body>
 </html>
