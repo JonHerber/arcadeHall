@@ -1,13 +1,23 @@
 import Phaser from 'phaser';
 import { Pacman } from '../consts/SceneKeys';
+import { defaultFont } from '../consts/Fonts';
+import WebFontFile from './WebFontFile';
 
 /**
  * PacmanScene - A Phaser scene that implements a Pacman game with a maze,
- * animated sprites, smooth turning Pacman, and ghost AI that pursues Pacman.
- * Three ghosts are spawned:
+ * animated sprites, smooth turning Pacman, ghost AI that pursues Pacman,
+ * and a scoring system. Three ghosts are spawned:
  *  - Red ghost at the bottom right (default)
  *  - Pink ghost at the top right
  *  - Orange ghost at the bottom left
+ *
+ * Picking up a pellet increases the score by 10 points.
+ *
+ * NEW: Five additional powerups are placed on the map. When Pacman collects one,
+ * he becomes invincible for 7 seconds. During that time:
+ *  - Ghosts are tinted blue.
+ *  - If Pacman touches a ghost, that ghost is "killed" and Pacman's invincibility
+ *    is extended by 7 seconds.
  */
 export default class PacmanScene extends Phaser.Scene {
   constructor() {
@@ -18,20 +28,28 @@ export default class PacmanScene extends Phaser.Scene {
     this.nextDirection = null;
     // We'll store all ghosts in an array.
     this.ghosts = [];
+    // Initialize the score.
+    this.score = 0;
+    // Invincibility state for Pacman
+    this.isInvincible = false;
+    this.invincibleEndTime = 0;
   }
 
   /**
-   * Preload assets and create textures for Pacman, ghosts, and pellets.
+   * Preload assets and create textures for Pacman, ghosts, pellets, and powerups.
    */
   preload() {
     this.createPacmanTextures();
     this.createGhostTextures();
     this.createPelletTexture();
-    // The wall texture is created later in createMaze() if it doesn't exist.
+    this.createPowerupTexture();
+    // Load your font
+    const fonts = new WebFontFile(this.load, 'Press Start 2P');
+    this.load.addFile(fonts);
   }
 
   /**
-   * Create the game scene: animations, maze, sprites, and input.
+   * Create the game scene: animations, maze, sprites, input, and score display.
    */
   create() {
     this.createAnimations();
@@ -40,27 +58,61 @@ export default class PacmanScene extends Phaser.Scene {
 
     this.createMaze();
     this.createSprites();
+    // Create the score text in the top-left corner.
+    this.score = 0;
+    this.scoreText = this.add.text(10, 10, 'Score: 0', {
+      fontSize: '16px',
+      fill: '#fff',
+      fontFamily: defaultFont,
+    });
     this.createInput();
   }
 
   /**
-   * Update loop: handle both Pacman and ghost movement.
+   * Update loop: handle both Pacman and ghost movement as well as invincibility.
+   * @param {number} time - The current time (in ms).
+   * @param {number} delta - The delta time since last update.
    */
-  update() {
+  update(time, delta) {
     this.handlePacmanMovement();
-    // Update each ghost individually.
+    // Update each ghost individually if they are active.
     this.ghosts.forEach((ghost) => {
-      this.handleGhostMovement(ghost);
+      if (ghost.active) {
+        this.handleGhostMovement(ghost);
+      }
     });
+
+    // Handle invincibility timer and ghost tint.
+    if (this.isInvincible) {
+      if (time >= this.invincibleEndTime) {
+        this.isInvincible = false;
+        this.ghosts.forEach((ghost) => {
+          if (ghost.active) ghost.clearTint();
+        });
+      } else {
+        // While invincible, tint all active ghosts blue.
+        this.ghosts.forEach((ghost) => {
+          if (ghost.active) ghost.setTint(0x0000ff);
+        });
+      }
+    } else {
+      this.ghosts.forEach((ghost) => {
+        if (ghost.active) ghost.clearTint();
+      });
+    }
   }
 
   /**
    * Callback when Pacman overlaps a pellet.
+   * Picking up a pellet gives 10 points.
    * @param {Phaser.GameObjects.GameObject} pacman - The Pacman sprite.
    * @param {Phaser.GameObjects.GameObject} pellet - The pellet to be eaten.
    */
   eatPellet(pacman, pellet) {
     pellet.disableBody(true, true);
+    // Increase the score by 10.
+    this.score += 10;
+    this.scoreText.setText('Score: ' + this.score);
     if (this.pellets.countActive(true) === 0) {
       this.add
         .text(400, 300, 'You Win!', { fontSize: '48px', fill: '#fff' })
@@ -73,11 +125,38 @@ export default class PacmanScene extends Phaser.Scene {
 
   /**
    * Callback when Pacman collides with a ghost.
+   * If Pacman is invincible, the ghost is "killed" and the invincibility
+   * duration is extended by 7 seconds. Otherwise, the scene is restarted.
    * @param {Phaser.GameObjects.GameObject} pacman - The Pacman sprite.
    * @param {Phaser.GameObjects.GameObject} ghost - The ghost sprite.
    */
   hitGhost(pacman, ghost) {
-    this.scene.restart();
+    if (this.isInvincible) {
+      ghost.disableBody(true, true);
+      // Extend invincibility by 7 seconds (7000 ms).
+      this.invincibleEndTime += 7000;
+    } else {
+      this.scene.restart();
+    }
+  }
+
+  /**
+   * Callback when Pacman overlaps a powerup.
+   * Activates invincibility for 7 seconds (or extends it if already active).
+   * @param {Phaser.GameObjects.GameObject} pacman - The Pacman sprite.
+   * @param {Phaser.GameObjects.GameObject} powerup - The powerup sprite.
+   */
+  eatPowerup(pacman, powerup) {
+    powerup.disableBody(true, true);
+    const extraTime = 7000; // milliseconds
+    const currentTime = this.time.now;
+    if (this.isInvincible && this.invincibleEndTime > currentTime) {
+      // Already invincible; extend the duration.
+      this.invincibleEndTime += extraTime;
+    } else {
+      this.isInvincible = true;
+      this.invincibleEndTime = currentTime + extraTime;
+    }
   }
 
   /**
@@ -296,7 +375,20 @@ export default class PacmanScene extends Phaser.Scene {
   }
 
   /**
-   * Create and position Pacman and the ghosts.
+   * Create texture for the powerup.
+   * The powerup is drawn as a larger circle (16×16 px) in a distinct color.
+   */
+  createPowerupTexture() {
+    const powerupGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+    // You can adjust the color as desired; here we use a magenta color.
+    powerupGraphics.fillStyle(0xff00ff, 1);
+    powerupGraphics.fillCircle(8, 8, 8);
+    powerupGraphics.generateTexture('powerup', 16, 16);
+    powerupGraphics.destroy();
+  }
+
+  /**
+   * Create and position Pacman, the ghosts, and (via createMaze) the powerups.
    */
   createSprites() {
     // Create Pacman sprite at an open cell.
@@ -356,6 +448,8 @@ export default class PacmanScene extends Phaser.Scene {
       this.physics.add.overlap(this.pacman, ghost, this.hitGhost, null, this);
     });
     this.physics.add.overlap(this.pacman, this.pellets, this.eatPellet, null, this);
+    // Overlap for powerups.
+    this.physics.add.overlap(this.pacman, this.powerups, this.eatPowerup, null, this);
   }
 
   /**
@@ -567,6 +661,7 @@ export default class PacmanScene extends Phaser.Scene {
   /**
    * Create the maze.
    * The maze uses a 15×20 grid (each cell is 40×40 px) to fill an 800×600 field.
+   * In addition to pellets, five powerups are placed at fixed positions.
    */
   createMaze() {
     // Define the maze grid: 1 = Wall, 0 = Open space (pellet)
@@ -619,5 +714,21 @@ export default class PacmanScene extends Phaser.Scene {
         }
       }
     }
+
+    // Create the powerup group and add 5 powerups at fixed positions.
+    // (Adjusted positions so Pacman doesn't immediately pick one up.)
+    const powerupPositions = [
+      { row: 2, col: 1 },    // Changed from row:1, col:1 to row:2, col:1
+      { row: 1, col: 18 },
+      { row: 13, col: 1 },
+      { row: 13, col: 18 },
+      { row: 7, col: 10 },
+    ];
+    this.powerups = this.physics.add.staticGroup();
+    powerupPositions.forEach((pos) => {
+      const x = pos.col * tileSize + tileSize / 2;
+      const y = pos.row * tileSize + tileSize / 2;
+      this.powerups.create(x, y, 'powerup');
+    });
   }
 }
