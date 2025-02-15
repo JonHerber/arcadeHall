@@ -4,6 +4,7 @@ const PongBackground = 'pongbackground'
 const PongGameOver = 'ponggameover'
 const MainMenue = 'MainMenue'
 const Pacman = 'pacman'
+const PacmanDefeat = 'pacmandefeat'
 
 export {
     TitleScreen,
@@ -11,5 +12,6 @@ export {
     PongBackground,
     PongGameOver,
     MainMenue,
-    Pacman
+    Pacman,
+    PacmanDefeat
 }

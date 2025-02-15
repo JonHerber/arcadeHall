@@ -6,6 +6,7 @@ import PongBackground from './scences/PongBackground'
 import PongGameOver from './scences/PongGameOver'
 import MainMenue from './scences/MainMenue'
 import Pacman from './scences/Pacman'
+import PacmanDefeat from './scences/PacmanDefeat'
 
 import * as SceneKeys from './consts/SceneKeys'
 
@@ -29,6 +30,7 @@ game.scene.add(SceneKeys.PongBackground, PongBackground)
 game.scene.add(SceneKeys.PongGameOver, PongGameOver)
 game.scene.add(SceneKeys.MainMenue, MainMenue)
 game.scene.add(SceneKeys.Pacman, Pacman)
+game.scene.add(SceneKeys.PacmanDefeat, PacmanDefeat)
 
 game.scene.start('MainMenue')
 //game.scene.start(SceneKeys.Game)

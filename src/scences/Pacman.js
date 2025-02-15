@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Pacman } from '../consts/SceneKeys';
 import { defaultFont } from '../consts/Fonts';
 import WebFontFile from './WebFontFile';
+import { PacmanDefeat } from '../consts/SceneKeys';
 
 export default class PacmanScene extends Phaser.Scene {
   constructor() {
@@ -142,12 +143,7 @@ export default class PacmanScene extends Phaser.Scene {
 
       if (this.lives <= 0) {
         // Game over.
-        this.add
-          .text(400, 300, 'Game Over', { fontSize: '48px', fill: '#fff' })
-          .setOrigin(0.5);
-        this.time.delayedCall(3000, () => {
-          this.scene.restart();
-        });
+        this.scene.start(PacmanDefeat);
       } else {
         // Disable Pacman immediately.
         this.pacman.disableBody(true, true);
