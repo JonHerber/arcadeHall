@@ -2,8 +2,7 @@ import Phaser from 'phaser'
 
 import { defaultFont } from '../consts/Fonts'
 import WebFontFile from './WebFontFile'
-import { Pong, Pacman } from '../consts/SceneKeys'
-import PacmanScene from './Pacman';
+import { Pong, Pacman, Snake} from '../consts/SceneKeys'
 
 export default class MainMenue extends Phaser.Scene {
     constructor() {
@@ -43,7 +42,7 @@ export default class MainMenue extends Phaser.Scene {
       });
   
       // Create the "Pacman" button
-      const pacmanButton = this.add.text(400, 300, 'Pacman', {
+      const pacmanButton = this.add.text(400, 300, 'Pacman (WIP!)', {
         fontSize: '32px',
         fill: '#fff',
         fontFamily: defaultFont
@@ -60,9 +59,27 @@ export default class MainMenue extends Phaser.Scene {
         // Start the Pacman game scene
         this.scene.start(Pacman);
       });
+
+      // Create the "Snake" button
+      const snakeButton = this.add.text(400, 400, 'Snake', {
+        fontSize: '32px',
+        fill: '#fff',
+        fontFamily: defaultFont,
+      }).setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      
+        snakeButton.on('pointerover', () => {
+            snakeButton.setStyle({ fill: '#ff0' });
+      });
+      snakeButton.on('pointerout', () => {
+        snakeButton.setStyle({ fill: '#fff' });
+      });
+      snakeButton.on('pointerdown', () => {
+        this.scene.start(Snake);
+      });
   
       // Create the "More Soon" button
-      const moreSoonButton = this.add.text(400, 400, 'More Soon', {
+      const moreSoonButton = this.add.text(400, 500, 'More Soon', {
         fontSize: '32px',
         fill: '#fff',
         fontFamily: defaultFont,
