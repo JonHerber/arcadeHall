@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import * as GameScences from '../consts/SceneKeys'
 import WebFontFile from './WebFontFile'
+import { defaultFont } from '../consts/Fonts'
 
 export default class GameBackground extends Phaser.Scene {
   preload() {
@@ -24,16 +25,16 @@ export default class GameBackground extends Phaser.Scene {
 
     this.add.text(width / 2, height / 2, text, {
       fontSize: '40px',
-      fontFamily: '"Press Start 2P"'
+      fontFamily: defaultFont
     }).setOrigin(0.5, 0.5)
     
-    this.add.text(width / 2, height / 2 + 50, 'Press SPACE to restart', {
+    this.add.text(width / 2, height / 2 + 50, 'Press SPACE to return to main menu', {
         fontSize: '15px',
-        fontFamily: '"Press Start 2P"'
+        fontFamily: defaultFont
         }).setOrigin(0.5, 0.5)
         
     this.input.keyboard.once('keydown-SPACE', () => {
-        this.scene.start(GameScences.TitleScreen)
+        this.scene.start(GameScences.MainMenue)
     })
   }
 }

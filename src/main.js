@@ -1,9 +1,11 @@
 import Phaser, { Physics } from 'phaser'
 
 import TitleScreen from './scences/TitleScreen'
-import Game from './scences/Game'
-import GameBackground from './scences/GameBackground'
-import GameOver from './scences/GameOver'
+import Pong from './scences/Pong'
+import PongBackground from './scences/PongBackground'
+import PongGameOver from './scences/PongGameOver'
+import MainMenue from './scences/MainMenue'
+import Pacman from './scences/Pacman'
 
 import * as SceneKeys from './consts/SceneKeys'
 
@@ -22,9 +24,11 @@ const config = {
 const game = new Phaser.Game(config)
 
 game.scene.add(SceneKeys.TitleScreen, TitleScreen)
-game.scene.add(SceneKeys.Game, Game)
-game.scene.add(SceneKeys.GameBackground, GameBackground)
-game.scene.add(SceneKeys.GameOver, GameOver)
+game.scene.add(SceneKeys.Pong, Pong)
+game.scene.add(SceneKeys.PongBackground, PongBackground)
+game.scene.add(SceneKeys.PongGameOver, PongGameOver)
+game.scene.add(SceneKeys.MainMenue, MainMenue)
+game.scene.add(SceneKeys.Pacman, Pacman)
 
-game.scene.start('titlescreen')
+game.scene.start('MainMenue')
 //game.scene.start(SceneKeys.Game)

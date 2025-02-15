@@ -1,11 +1,15 @@
 const TitleScreen = 'titlescreen'
-const Game = 'game'
-const GameBackground = 'gamebackground'
-const GameOver = 'gameover'
+const Pong = 'pong'
+const PongBackground = 'pongbackground'
+const PongGameOver = 'ponggameover'
+const MainMenue = 'MainMenue'
+const Pacman = 'pacman'
 
 export {
     TitleScreen,
-    Game,
-    GameBackground,
-    GameOver
+    Pong,
+    PongBackground,
+    PongGameOver,
+    MainMenue,
+    Pacman
 }

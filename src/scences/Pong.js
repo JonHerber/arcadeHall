@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import WebFontFile from './WebFontFile'
-import { GameBackground } from '../consts/SceneKeys'
+import { Pong, PongBackground, PongGameOver } from '../consts/SceneKeys'
 import * as Colors from '../consts/Colors'
 
 export default class Game extends Phaser.Scene {
@@ -21,8 +21,8 @@ export default class Game extends Phaser.Scene {
    */
   create() {
     // Run the background scene behind this scene
-    this.scene.run(GameBackground)
-    this.scene.sendToBack(GameBackground)
+    this.scene.run(PongBackground)
+    this.scene.sendToBack(PongBackground)
 
     // Initialize scores
     this.scorePlayer1 = 0
@@ -225,11 +225,11 @@ export default class Game extends Phaser.Scene {
     this.scorePlayer1Text.setText(this.scorePlayer1)
     this.scorePlayer2Text.setText(this.scorePlayer2)
 
-    const maxScore = 5
+    const maxScore = 1
     if (this.scorePlayer1 >= maxScore || this.scorePlayer2 >= maxScore) {
       this.paused = true
-      this.scene.stop(GameBackground)
-      this.scene.start('gameover', {
+      this.scene.stop(PongBackground)
+      this.scene.start(PongGameOver, {
         player1: this.scorePlayer1,
         player2: this.scorePlayer2
       })
